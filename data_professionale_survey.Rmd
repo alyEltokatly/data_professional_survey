@@ -1,0 +1,155 @@
+---
+title: "Data Professional Survey"
+author: "Aly Eltokatly"
+date: "2023-12-15"
+output: html_document
+---
+
+## Data Profissional Survey
+
+### Introduction
+
+This project aims to conduct a thorough analysis Using **R Programming Language**  of various aspects of the data profession, taking into account market rates based on categorical factors such as industry, education, role, gender, age, race, and country. The dataset used in this project is a data frame comprising results from a survey administered to professionals in the field of Data Science worldwide. The survey successfully obtained responses from **630** participants. Through this analysis, the project endeavors to provide valuable insights into the prevailing trends and preferences within the data profession.
+
+## Report Deliverable:
+-	Clear statement of the business task.
+-	Description of all data sources used.
+-	Documentation for processing of cleaning or manipulation of data.
+-	Visualizations and Key Findings: Supporting visualizations and key findings.
+-	Recommendations: Top three recommendations based on the analysis.
+
+## Business Task
+Since the the Data professional career is trending right now, the stakeholder need to determine the following.
+
+ - What is the average salary per each data professional?
+ - Which programming language is most commonly used by data professionals?
+ - What is the average salary for data analysts in each country that took part in   this survey?
+ 
+## Preparing and Data Source.
+Will preparing and setting up my **R** environment by loading the 'tidyverse' and 'data_profissional_survey' packages.
+
+```{r loading packages}
+library(tidyverse)
+data_profissinal_survey <- read.csv("data_profissinal_survey.csv")
+```
+
+ 
+## Processing and Cleaning Data.
+
+I used Rstudio to clean and manipulate the data. Upon exploring the data. I backup of the original dataset before proceeding with further restructuring. And  I noticed the following.
+
+- Given the diverse input in the survey data, I will need to standardize it by     identifying keywords and categorizing responses based on shared attributes.
+- I excluded certain columns from consideration as they contained minimal data     and will not be relevant to my analysis.
+- I renamed some variables headers that were too long and inefficient.
+- Interested in determining the number of participants who took part in this       survey.
+```{r Number of participants}
+length(data_profissinal_survey$ID)
+```
+- Convert the data type of variable [current_.age] from integer to numeric.
+
+```{r change type of data for variable}
+data_profissinal_survey$current_.age <- as.numeric(data_profissinal_survey$current_.age)
+```
+
+- Calculate the mean of [current_.age].
+```{r mean of current_.age}
+mean(data_profissinal_survey$current_.age)
+```
+
+- Clean the variable [salary] by removing the extra symbol and blank space, then will separate into 2 variables [low_salary] and [high_salary], and after that will change the type of data for new variables to numeric in order to calculate the mean, 
+```{r remove sympols and blank}
+data_profissinal_survey$salery <- gsub("k","",data_profissinal_survey$salery)
+```
+
+```{r seperate the salary variable}
+data_profissinal_survey <- separate(data_profissinal_survey, col = salery,
+                                      into = c("low_salary","high_salary",
+                                               sep = "-"))
+```
+
+```{r change data type}
+data_profissinal_survey$low_salary <- as.numeric(data_profissinal_survey$low_salary)
+  data_profissinal_survey$high_salary <- as.numeric(data_profissinal_survey$high_salary)
+```
+- change the value of the low_salary which equal "0" to be "40" 
+  in order to get the right average salary.
+```{r change the value }
+data_profissinal_survey$low_salary[data_profissinal_survey$low_salary == 0]<- 40
+```
+  
+-In [high-salary] replace NA value with new value "225" in order to keep         consistency.
+```{r replace NA value}
+data_profissinal_survey<- data_profissinal_survey %>% 
+  mutate(high_salary = replace_na(high_salary,225)) %>%
+  mutate(average_salary = (low_salary + high_salary)/2) %>% 
+  view()
+```
+
+- Clean the variable [title] by exclude the text after 'other" to a new column.
+
+```{r seperate variable [title] }
+data_profissinal_survey_v1<-  data_profissinal_survey %>% 
+ separate(col = titel, into = c("title", "dep", "other"), sep = " ") %>% 
+ view()
+
+```
+
+- replace  the observation in variable [title].
+
+```{r replace observation in [title]}
+data_profissinal_survey_v1$title <- recode(data_profissinal_survey_v1$title,
+                                        "Student/Looking/None" = "Student")
+```
+ - Remove the text string in variable [dep] in order to unite with variable        [title]
+ 
+```{r remove and unite between [dep] and [title]}
+data_profissinal_survey_v1<- data_profissinal_survey_v1 %>% 
+  mutate(dep = if_else(title == "Other"," ", (dep))) %>% 
+  unite(col = position, title, dep, sep = " ") %>% 
+  view()
+```
+  - clean the variable [position] by replace NA.
+```{r clean [position]}
+data_profissinal_survey_v1$position <- recode(data_profissinal_survey_v1$position,
+                                        "Student NA" = "Student")
+
+data_profissinal_survey_v1$position <- recode(data_profissinal_survey_v1$position,
+                                           "Other  " = "Other")
+```
+  
+- Clean [lang_1,lang_2, lang_3].
+```{r clean all [lang] variables] }
+data_profissinal_survey_v4<- data_profissinal_survey_v1 %>% 
+  separate(col= programming_language,into = c("lang_1","lang_2","lang_3")
+           ,sep = ":") %>% 
+  view()
+data_profissinal_survey_v4$lang_2 <- substr(data_profissinal_survey_v4$lang_2,1,3)
+
+data_profissinal_survey_v4 %>%  
+ mutate(lang_2 = str_to_upper(lang_2)) %>% 
+  View()
+data_profissinal_survey_v4 %>% 
+  mutate(lang_1 = if_else(lang_1 == "Other", 
+                          if_else(lang_2 == "SQL","SQL",(lang_1)),lang_1)) %>% 
+  view()
+data_profissinal_survey_v4<- data_profissinal_survey_v4 %>% 
+    mutate(lang_1 = if_else
+           (lang_1 == "Other:Mostly use sql but that\x92s not programming language..",
+             "Other",(lang_1))) %>% 
+    mutate(lang_1 = if_else(lang_1 == "Other:I don\x92t know any",
+                             "Other", (lang_1))) %>% 
+    view()
+
+```
+
+- Clean variable [country]
+```{r clean variable [country]}
+data_profissinal_survey_v4$country[data_profissinal_survey_v4$country == "United States"]<- "USA"
+ data_profissinal_survey_v4$country[data_profissinal_survey_v4$country == "United Kingdom"]<-"UK"
+ data_profissinal_survey_v4$country[data_profissinal_survey_v4$country == 
+                                   "Other (Please Specify):Per\xfa "]<- "Other"
+ data_profissinal_survey_v4<- data_profissinal_survey_v4 %>% 
+   separate(col = country, into = c("country", "coun_2"),sep = " ") %>% 
+    view()
+```
+ 
